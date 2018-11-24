@@ -36,7 +36,6 @@ public class InitBot {
 
 
     public InitBot() {
-
         this.dataBot = LoaderConfig();
         actor = new UserActor(512877743, dataBot.getVkToken()[0]);
 
@@ -56,10 +55,6 @@ public class InitBot {
         Properties botConfig = new Properties();
         try (BufferedReader buff = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/config.properties"), "UTF8"))) {
             botConfig.load(buff);
-            dataBot.setPrefixes(botConfig.getProperty("prefixes"));
-            dataBot.setBlacklist(botConfig.getProperty("blacklist").split(","));
-            dataBot.setWordsBlacklist(botConfig.getProperty("wordsBlacklist"));
-            dataBot.setDebug(Boolean.valueOf(botConfig.getProperty("debug")));
             dataBot.setVkToken(botConfig.getProperty("vkToken").split(";"));
             dataBot.setVersion(botConfig.getProperty("version"));
             dataBot.setYandexToken(botConfig.getProperty("yandexWeatherToken"));
