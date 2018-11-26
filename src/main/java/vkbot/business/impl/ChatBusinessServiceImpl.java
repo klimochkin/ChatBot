@@ -3,6 +3,7 @@ package vkbot.business.impl;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 
+import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -36,28 +37,32 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
 
     // public static void sendMessage(String peerId, String message, String attachment) {
     @Override
-    public void sendMessage(Message message) throws ClientException, ApiException {
+    public void sendMessage(Message msg) throws ClientException, ApiException {
         Random random = new Random();
-        InitBot.vk.messages().send(InitBot.actor)
-                .peerId(message.getPeerId())
-                .message(message.getText())
-                .attachment(message.getAttachment())
-                .randomId(random.nextInt())
-                .execute();
+        MessagesSendQuery msgSend = InitBot.vk.messages().send(InitBot.actor)
+                .peerId(msg.getPeerId())
+                .message(msg.getText())
+                .attachment(msg.getAttachment())
+                .randomId(random.nextInt());
 
-        LOG.debug("Ответ: " + message.getText() + " Вложение: " + message.getAttachment());
+        if (msg.isForward())
+            msgSend.forwardMessages(msg.getMessageId().toString()).execute();
+        else
+            msgSend.execute();
+
+        LOG.debug("Ответ: " + msg.getText() + " Вложение: " + msg.getAttachment());
     }
 
-    public  List<User> getChatUser(String peer_id) throws IOException, ParseException, ClientException, ApiException {
+    public List<User> getChatUser(String peer_id) throws IOException, ParseException, ClientException, ApiException {
 
         Integer chatId = Integer.parseInt(peer_id);
         StringBuilder requestURL = new StringBuilder();
-         List<User> users = new ArrayList();
+        List<User> users = new ArrayList();
 
-        String jsonStr =InitBot.vk.messages().getChat(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields","online").executeAsString();
+        String jsonStr = InitBot.vk.messages().getChat(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields", "online").executeAsString();
         LOG.debug(jsonStr);
-     //   String strd = InitBot.vk.messages().getChatUsers(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields","online").executeAsString();
-     //   LOG.debug(strd.toString());
+        //   String strd = InitBot.vk.messages().getChatUsers(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields","online").executeAsString();
+        //   LOG.debug(strd.toString());
 
         JSONObject commentsJSON = (JSONObject) new JSONParser().parse(jsonStr);
         JSONObject response = (JSONObject) commentsJSON.get("response");
@@ -68,14 +73,13 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
                 User user = new User(userJson);
                 users.add(user);
             }
-        }
-        else
-            throw new RuntimeException ("Неудалось получить список юзеров");
+        } else
+            throw new RuntimeException("Неудалось получить список юзеров");
 
         return users;
     }
 
-    public void startCycleForChat()  {
+    public void startCycleForChat() {
         try {
 
             longPollBusinessService.cycle();

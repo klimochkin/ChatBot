@@ -6,9 +6,10 @@ import vkbot.enums.MessageTypeEnum;
 
 @Data
 public class Message extends AbstractMessage{
-    Long messageId;
-    Integer flags;
-    Integer peerId;
-    Long ts;
-    String subject;
+    private Long messageId;
+    private Integer flags;
+    private Integer peerId;
+    private Long ts;
+    private String subject;
+    private boolean forward;
 }
