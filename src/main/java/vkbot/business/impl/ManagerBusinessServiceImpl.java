@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
+import vkbot.business.ChatBusinessService;
+import vkbot.business.GroupBusinessService;
 import vkbot.business.LongPollBusinessService;
 import vkbot.business.ManagerBusinessService;
 
@@ -23,12 +25,26 @@ public class ManagerBusinessServiceImpl implements ManagerBusinessService {
     private static final Logger LOG = LoggerFactory.getLogger(ManagerBusinessServiceImpl.class);
 
     @Autowired
-    private LongPollBusinessService longPollBusinessService;// = new LongPollBusinessServiceImpl();
+    GroupBusinessService groupBusinessService;
+
+    @Autowired
+    ChatBusinessService chatBusinessService;
+
 
     @Override
-    public void startBot() throws ClientException, ApiException, ParseException, JSONException, IOException {
-        longPollBusinessService.cycle();
+    public void startBot(){
 
+        Runnable chatListenerStart = () -> {
+            chatBusinessService.startCycleForChat();
+        };
+
+        Runnable groupListenerStart = () -> {
+            groupBusinessService.startCycleForGroups();
+        };
+
+        new Thread(chatListenerStart).start();
+
+        new Thread(groupListenerStart).start();
     }
 
     @PostConstruct

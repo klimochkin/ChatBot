@@ -11,5 +11,6 @@ import vkbot.entity.Message;
 public interface ChatBusinessService {
 
     void sendMessage(Message message) throws ClientException, ApiException;
+     void startCycleForChat();
 
 }

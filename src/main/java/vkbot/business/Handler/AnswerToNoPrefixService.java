@@ -19,4 +19,13 @@ public class AnswerToNoPrefixService {
         msg.setAttachment(null);
         return msg;
     }
+
+    public AbstractMessage getAnswerCommandNAH(AbstractMessage msg) {
+
+        String answer = "Нахуй твоя жопа хороша!";
+
+        msg.setText(answer);
+        msg.setAttachment(null);
+        return msg;
+    }
 }

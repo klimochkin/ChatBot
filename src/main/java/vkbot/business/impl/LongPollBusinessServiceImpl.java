@@ -3,14 +3,8 @@ package vkbot.business.impl;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.vk.api.sdk.callback.longpoll.queries.GetLongPollEventsQuery;
-import com.vk.api.sdk.client.TransportClient;
-import com.vk.api.sdk.client.VkApiClient;
-import com.vk.api.sdk.client.actors.UserActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
-import com.vk.api.sdk.exceptions.LongPollServerKeyExpiredException;
-import com.vk.api.sdk.exceptions.LongPollServerTsException;
-import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.messages.LongpollParams;
 import com.vk.api.sdk.queries.messages.MessagesGetLongPollServerQuery;
 import org.json.JSONException;
@@ -82,13 +76,13 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
                 case 4:
                     Message message = new Message();
                     message.setSourceType(SourceTypeEnum.CHAT);
-                    message.setMessage_id(Long.parseLong(arrayItem.get(1).toString()));
+                    message.setMessageId(Long.parseLong(arrayItem.get(1).toString()));
                     message.setFlags(Integer.parseInt(arrayItem.get(2).toString()));
-                    message.setPeer_id(Integer.parseInt(arrayItem.get(3).toString()));
+                    message.setPeerId(Integer.parseInt(arrayItem.get(3).toString()));
                     message.setTs(Long.parseLong(arrayItem.get(4).toString()));
                     message.setSubject(arrayItem.get(5).toString());
                     message.setText(arrayItem.get(6).toString().toLowerCase().replace("\"", ""));
-                    message.setUserId(0);
+                    message.setUserId(0L);
 /*                    LOG.debug("++++++++++++++++++++");
                     LOG.debug(message.getText());
                     LOG.debug("++++++++++++++++++++");
@@ -97,10 +91,13 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
                     LOG.debug("++++++++++++++++++++");*/
                     try {
                         JSONObject object = new JSONObject(arrayItem.get(7).toString());
-                        message.setUserId(Integer.parseInt(object.getString("from")));
+                        message.setUserId(Long.parseLong(object.getString("from")));
                     } catch (Exception ignored) {
                     }
-                    handlerBusinessService.handleMessage(message);
+                    if (message.getPeerId() == 2000000016)
+                        break;
+
+                    handlerBusinessService.handleMessages(message);
                     break;
             }
         }

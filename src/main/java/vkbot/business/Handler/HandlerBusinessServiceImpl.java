@@ -9,12 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
 import vkbot.business.ChatBusinessService;
+import vkbot.business.GroupBusinessService;
 import vkbot.entity.AbstractMessage;
+import vkbot.entity.Comment;
 import vkbot.entity.Message;
 import vkbot.enums.*;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,13 +28,16 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
     private static final Logger LOG = LoggerFactory.getLogger(HandlerBusinessServiceImpl.class);
 
     @Autowired
-    ChatBusinessService chatBusinessService;// = new ChatBusinessServiceImpl();
+    ChatBusinessService chatBusinessService;
 
     @Autowired
     AnswerToCommandService answerToCommandService;
 
+    @Autowired
+    GroupBusinessService groupBusinessService;
+
     @Override
-    public void handleMessage(Message msg) throws ClientException, ApiException, IOException, ParseException {
+    public void handleMessages(Message msg) throws ClientException, ApiException, IOException, ParseException {
 
         int flag = msg.getFlags();
         boolean outbox = (flag & 2) != 0;
@@ -49,8 +55,6 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
                 // msg.setAttachment(abstractMsg.getAttachment());
                 if (SourceTypeEnum.CHAT.equals(msg.getSourceType()))
                     msg = (Message) abstractMsg;
-                if (SourceTypeEnum.GROUP.equals(msg.getSourceType()))
-                    msg = (Message) abstractMsg;
                 LOG.debug("Сформирован ответ: " + abstractMsg.getText());
                 LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
                 chatBusinessService.sendMessage(msg);
@@ -60,7 +64,34 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
         }
     }
 
-    private MessageTypeEnum typologyMsg(MessageTypeEnum messageType, Integer userId, String text) {
+    @Override
+    public void handleComments(Comment com) throws IOException, ApiException, ParseException, ClientException {
+
+        if (com.getText().contains("сиськи"))
+            LOG.debug("== " + com.getText());
+
+        com.setMessageType(typologyMsg(com.getMessageType(), com.getUserId(), com.getText()));
+
+        AbstractMessage abstractMsg = com;
+
+        abstractMsg = answerToCommandService.splitter(abstractMsg);
+
+        LOG.debug("==========================================================");
+        LOG.debug("Топик: " + com.getTopicId());
+        LOG.debug("Получено сообщение: " + com.getText());
+        if (abstractMsg != null) {
+            if (SourceTypeEnum.GROUP.equals(com.getSourceType()))
+                com = (Comment) abstractMsg;
+            LOG.debug("Сформирован ответ: " + abstractMsg.getText());
+            LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
+            groupBusinessService.sendComment(com);
+        } else
+            LOG.debug("Не удалось типологизировать сообщение. Ответ не был сформирован.");
+        LOG.debug("==========================================================");
+    }
+
+
+    private MessageTypeEnum typologyMsg(MessageTypeEnum messageType, Long userId, String text) {
         MessageTypeEnum newMessageType = messageType;
 
         if (newMessageType == null)
@@ -82,8 +113,9 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
 
         boolean a = InitBot.prefix.contains(prefixMsg);
         boolean b = lastMessage.length >= 2;
+        boolean c = prefixMsg.contains(InitBot.prefix.get(0));
 
-        if (InitBot.prefix.contains(prefixMsg) && lastMessage.length >= 2) {
+        if ((InitBot.prefix.contains(prefixMsg) || prefixMsg.contains(InitBot.prefix.get(0))) && lastMessage.length >= 2) {
             String liter = lastMessage[1];
             for (CommandEnum commandEnum : CommandEnum.values()) {
                 if (commandEnum.equalsCode(liter))
@@ -111,13 +143,19 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
 
     private MessageTypeEnum checkNoPrefix(String text) {
 
+        List<String> literals = new ArrayList<>();
+
         if (text.length() > 250) {
             text = text.substring(0, 250);
         }
 
-        if (checkFullMessage(text, InitBot.prefix))
+        if (checkFullMessage(text, InitBot.prefix)) {
             return OtherEnum.NAME_BOT;
-
+        } else {
+            literals = Arrays.asList("нахуй", " на хуй ");
+            if (checkFullMessage(text, literals))
+                return OtherEnum.NAH;
+        }
 
         return null;
     }

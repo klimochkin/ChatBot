@@ -16,8 +16,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
+import vkbot.business.GroupBusinessService;
 import vkbot.business.impl.ChatBusinessServiceImpl;
 import vkbot.entity.AbstractMessage;
+import vkbot.entity.Comment;
 import vkbot.entity.Message;
 import vkbot.entity.User;
 import vkbot.enums.CommandEnum;
@@ -50,6 +52,8 @@ public class AnswerToCommandService {
     @Autowired
     private AnswerToNoPrefixService answerToNoPrefixService;
 
+    @Autowired
+    private GroupBusinessService groupBusinessService;
 
 
     public AbstractMessage splitter(AbstractMessage msg) throws ClientException, ApiException, IOException, ParseException {
@@ -84,6 +88,8 @@ public class AnswerToCommandService {
             return getAnswerCommandCOMMANDS(msg);
         } else if (OtherEnum.NAME_BOT.equals(type)) {
             return answerToNoPrefixService.getAnswerCommandSHAR(msg);
+        } else if (OtherEnum.NAH.equals(type)) {
+            return answerToNoPrefixService.getAnswerCommandNAH(msg);
         }
         return null;
     }
@@ -244,30 +250,32 @@ public class AnswerToCommandService {
     }
 
     private AbstractMessage getAnswerCommandONLINE(AbstractMessage msg) throws ApiException, ClientException, ParseException, IOException {
-        Message chatMessage;
+        boolean flag = true;
         String answer = "Модуль не подключен";
+        List<User> users = null;
         if (SourceTypeEnum.CHAT.equals(msg.getSourceType())) {
-            chatMessage = (Message) msg;
-            boolean flag = true;
-            List<User> users = chatBusinessService.getChatUser(chatMessage.getPeer_id().toString());
-            StringBuilder strAnswer = new StringBuilder();
-            strAnswer.append("Сейчас в онлайне: \n");
-            for (User user : users) {
-                if (user.isOnline()) {
-                    strAnswer.append("[id" + user.getUserId());
-                    strAnswer.append("|" + user.getFirstName());
-                    strAnswer.append(" " + user.getLastName() + "]\n");
-                    flag = false;
-                }
-            }
-            if (flag)
-                answer = "Нет никого!";
-            else
-                answer = strAnswer.toString();
+            Message chatMessage = (Message) msg;
+            users = chatBusinessService.getChatUser(chatMessage.getPeerId().toString());
         }
         if (SourceTypeEnum.GROUP.equals(msg.getSourceType())) {
-            answer = "Не реализовано";
+            Comment groupMessage = (Comment) msg;
+            users = groupBusinessService.getUserTopic(groupMessage.getGroupId()*-1, groupMessage.getTopicId());
         }
+        StringBuilder strAnswer = new StringBuilder();
+        strAnswer.append("Сейчас в онлайне: \n");
+        for (User user : users) {
+            if (user.isOnline()) {
+                strAnswer.append("[id" + user.getUserId());
+                strAnswer.append("|" + user.getFirstName());
+                strAnswer.append(" " + user.getLastName() + "]\n");
+                flag = false;
+            }
+        }
+        if (flag)
+            answer = "Нет никого!";
+        else
+            answer = strAnswer.toString();
+
         msg.setText(answer);
         msg.setAttachment(null);
         return msg;
@@ -300,7 +308,7 @@ public class AnswerToCommandService {
 
         String attach = "photo" + photo.getOwnerId() + "_" + photo.getId() + "_" + photo.getAccessKey();
 
-        return new AbstractMessage(text, null, null, attach);
+        return new AbstractMessage(text, null, null, attach, null);
     }
 
 

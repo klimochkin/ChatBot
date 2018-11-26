@@ -3,18 +3,20 @@ package vkbot.business.impl;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 
+import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
 import vkbot.business.ChatBusinessService;
+import vkbot.business.LongPollBusinessService;
 import vkbot.entity.Message;
 import vkbot.entity.User;
-import vkbot.external.ExternalService;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -28,13 +30,16 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
 
     private static final Logger LOG = LoggerFactory.getLogger(LongPollBusinessServiceImpl.class);
 
+    @Autowired
+    private LongPollBusinessService longPollBusinessService;
 
-    // public static void sendMessage(String peer_id, String message, String attachment) {
+
+    // public static void sendMessage(String peerId, String message, String attachment) {
     @Override
     public void sendMessage(Message message) throws ClientException, ApiException {
         Random random = new Random();
         InitBot.vk.messages().send(InitBot.actor)
-                .peerId(message.getPeer_id())
+                .peerId(message.getPeerId())
                 .message(message.getText())
                 .attachment(message.getAttachment())
                 .randomId(random.nextInt())
@@ -70,6 +75,17 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
         return users;
     }
 
+    public void startCycleForChat()  {
+        try {
+
+            longPollBusinessService.cycle();
+
+        } catch (JSONException | ParseException | IOException | ApiException | ClientException e) {
+            e.printStackTrace();
+        }
+
+
+    }
 
     @PostConstruct
     public void test() {
