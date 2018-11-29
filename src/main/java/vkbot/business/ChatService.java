@@ -3,7 +3,7 @@ package vkbot.business;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 
-import com.vk.api.sdk.queries.board.BoardGetCommentsSort;
+import com.vk.api.sdk.objects.messages.responses.GetHistoryResponse;
 import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import org.json.JSONException;
 import org.json.simple.JSONArray;
@@ -21,6 +21,7 @@ import vkbot.entity.User;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 @Service("ChatService")
@@ -74,9 +75,9 @@ public class ChatService {
 
         Map<String, Integer> statisticMessages = new HashMap<>();
         Map<Integer, Integer> statisticCharacter = new HashMap<>();
-
+        Integer N = 1;
         Integer chatId = peer_id;
-
+        Integer count;
         Integer countMessage;
         Integer countCharacter;
 
@@ -85,35 +86,46 @@ public class ChatService {
 
             int i = 0;
             int offset = 0;
-            while (i < 10) {
-                listMessage = InitBot.vk.messages().getHistory(InitBot.actor)
+            while (i < N) {
+                GetHistoryResponse getHistoryResponse = InitBot.vk.messages().getHistory(InitBot.actor)
                         .peerId(chatId)
                         .count(200)
                         .offset(offset)
                         .rev(false)
-                        .execute().getItems();
-
+                        .execute();
+                if (i == 0) {
+                    count = getHistoryResponse.getCount();
+                    if (count > 400)
+                        N = count / 200;
+                }
+                listMessage = getHistoryResponse.getItems();
                 for (com.vk.api.sdk.objects.messages.Message item : listMessage) {
-             //       countCharacter = statisticCharacter.get(item.getUserId());
-                    countMessage = statisticMessages.get(item.getUserId());
-
+                    //   countCharacter = statisticCharacter.get(item.getUserId());
+                    //   Integer usUd = item.getUserId();
+                    countMessage = statisticMessages.get(item.getUserId().toString());
+                    //   Object obj = statisticMessages.get(usUd);
+                    //   countMessage = statisticMessages.get("228900194");
 /*                    if (countCharacter == null) {
                         statisticCharacter.put(item.getUserId(), item.getActionText().length());
                     } else {
                         statisticCharacter.put(item.getUserId(), countCharacter + item.getActionText().length());
                     }*/
                     if (countMessage == null) {
-                        statisticMessages.put(item.getUserId().toString(), 1);
+                        countMessage = 1;
+                        statisticMessages.put(item.getUserId().toString(), countMessage);
                     } else {
-                        statisticMessages.put(item.getUserId().toString(), countMessage++);
+                        countMessage = countMessage + 1;
+                        statisticMessages.put(item.getUserId().toString(), countMessage);
                     }
                 }
+                TimeUnit.MILLISECONDS.sleep(300);
                 offset += 200;
                 i++;
             }
-        } catch (ApiException | ClientException e) {
+        } catch (ApiException | ClientException | InterruptedException e) {
             e.printStackTrace();
         }
+
         return statisticMessages;
     }
 

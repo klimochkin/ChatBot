@@ -19,6 +19,7 @@ import vkbot.access.InitBot;
 import vkbot.business.ChatService;
 import vkbot.business.GroupService;
 import vkbot.business.UserService;
+import vkbot.business.utils.MapComparator;
 import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
@@ -33,10 +34,9 @@ import vkbot.external.YandexIntegration;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+
+import static java.util.stream.Collectors.toMap;
 
 @Service("AnswerToCommandService")
 public class AnswerToCommandService {
@@ -302,16 +302,22 @@ public class AnswerToCommandService {
     }
 
     private AbstractMessage getAnswerCommandSTATMSG(AbstractMessage msg) {
-        StringBuilder answer = new StringBuilder("Статистика сообщений: ");
+        StringBuilder answer = new StringBuilder("Статистика сообщений:  \n");
         List<String> userIds = new ArrayList<>();
         Message message = (Message) msg;
 
-        Map<String, Integer> resp = chatBusinessService.statisticChatMessage(message.getPeerId());
-        userIds.addAll(resp.keySet());
+        Map<String, Integer> respMap = chatBusinessService.statisticChatMessage(message.getPeerId());
+
+        Map<String, Integer> sortedMap = respMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (e2,e1) -> e2, LinkedHashMap::new));
+
+        userIds.addAll(sortedMap.keySet());
         Map<String, String> users = userService.getMapUsers(userIds);
 
-        for (String key : resp.keySet()) {
-            answer.append(users.get(key)).append(" - ").append(resp.get(key)).append("\n");
+        for (String key : sortedMap.keySet()) {
+            answer.append(users.get(key)).append(" - ").append(sortedMap.get(key).toString()).append("\n");
         }
 
         msg.setText(answer.toString());
