@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.impl.ChatService;
-import vkbot.business.impl.GroupService;
+import vkbot.business.ChatService;
+import vkbot.business.GroupService;
 import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
@@ -50,44 +50,29 @@ public class HandlerService {
             LOG.debug("Беседа: " + msg.getSubject());
             LOG.debug("Получено сообщение: " + msg.getText());
             if (abstractMsg != null) {
-                //  msg.setText(abstractMsg.getText());
-                // msg.setAttachment(abstractMsg.getAttachment());
-                if (SourceTypeEnum.CHAT.equals(msg.getSourceType()))
-                    msg = (Message) abstractMsg;
-                LOG.debug("Сформирован ответ: " + abstractMsg.getText());
-                LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
+                msg = (Message) abstractMsg;
                 chatService.sendMessage(msg);
             } else
                 LOG.debug("Не удалось типологизировать сообщение. Ответ не был сформирован.");
-            LOG.debug("==========================================================");
         }
     }
 
     public void handleComments(Comment com) throws IOException, ApiException, ParseException, ClientException {
 
-        if (com.getText().contains("сиськи"))
-            LOG.debug("== " + com.getText());
-
         com.setMessageType(typologyMsg(com.getMessageType(), com.getUserId(), com.getText()));
-
         AbstractMessage abstractMsg = com;
-
         abstractMsg = answerToCommandService.splitter(abstractMsg);
 
         LOG.debug("==========================================================");
         LOG.debug("Топик: " + com.getTopicId());
         LOG.debug("Получено сообщение: " + com.getText());
         if (abstractMsg != null) {
-            if (SourceTypeEnum.GROUP.equals(com.getSourceType()))
-                com = (Comment) abstractMsg;
-            LOG.debug("Сформирован ответ: " + abstractMsg.getText());
-            LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
+            com = (Comment) abstractMsg;
             groupService.sendComment(com);
         } else
             LOG.debug("Не удалось типологизировать сообщение. Ответ не был сформирован.");
-        LOG.debug("==========================================================");
-    }
 
+    }
 
     private MessageTypeEnum typologyMsg(MessageTypeEnum messageType, Long userId, String text) {
         MessageTypeEnum newMessageType = messageType;
@@ -154,10 +139,8 @@ public class HandlerService {
             if (checkFullMessage(text, literals))
                 return OtherEnum.NAH;
         }
-
         return null;
     }
-
 
     public boolean checkFullMessage(String message, List<String> words) {
         for (String word : words) {
@@ -167,7 +150,6 @@ public class HandlerService {
         }
         return false;
     }
-
 
     @PostConstruct
     public void test() {

@@ -1,4 +1,4 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 
 import org.slf4j.Logger;

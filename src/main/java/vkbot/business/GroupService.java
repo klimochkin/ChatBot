@@ -1,4 +1,4 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 
 import com.vk.api.sdk.exceptions.ApiException;
@@ -35,8 +35,7 @@ public class GroupService {
 
     private Map<Integer, Integer> topicCache;
 
-    public GroupService() {
-    }
+    public GroupService() {}
 
     public void startCycleForGroups() {
         int i = 0;
@@ -45,7 +44,6 @@ public class GroupService {
                 List<Topic> topics = getNewsFeedComments();
                 hendlerCommentsList(topics);
                 TimeUnit.SECONDS.sleep(3);
-
             } catch (IOException | ParseException | ApiException | ClientException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -70,8 +68,6 @@ public class GroupService {
         }
     }
 
-
-
 /*
     //TODO: Сделать цикл получения сообщений с групп
     public void receivingComments() {
@@ -90,7 +86,6 @@ public class GroupService {
                 .message(answer)
                 .attachments(comment.getAttachment())
                 .execute();
-
     }
 
     public List<Comment> getComments(Integer groupId, Integer topicId, int startCommentId) throws IOException, ParseException, ClientException, ApiException {
@@ -218,8 +213,7 @@ public class GroupService {
         return topics;
     }
 
-
-    public static String buildPrefixName(Comment comment) {
+    public String buildPrefixName(Comment comment) {
         StringBuilder strBild = new StringBuilder();
         strBild.append("[id").append(comment.getUserId())
                 .append(":bp-").append(comment.getGroupId().toString().replace("-", ""))

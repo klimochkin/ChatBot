@@ -1,4 +1,4 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
