@@ -1,8 +1,9 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 
+import com.vk.api.sdk.queries.board.BoardGetCommentsSort;
 import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import org.json.JSONException;
 import org.json.simple.JSONArray;
@@ -14,29 +15,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.ChatBusinessService;
-import vkbot.business.LongPollBusinessService;
 import vkbot.entity.Message;
 import vkbot.entity.User;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
-@Service("ChatBusinessServiceImpl")
-public class ChatBusinessServiceImpl implements ChatBusinessService {
+@Service("ChatService")
+public class ChatService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LongPollBusinessServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LongPollService.class);
 
     @Autowired
-    private LongPollBusinessService longPollBusinessService;
+    private LongPollService longPollService;
 
-
-    // public static void sendMessage(String peerId, String message, String attachment) {
-    @Override
     public void sendMessage(Message msg) throws ClientException, ApiException {
         Random random = new Random();
         MessagesSendQuery msgSend = InitBot.vk.messages().send(InitBot.actor)
@@ -56,13 +50,10 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
     public List<User> getChatUser(String peer_id) throws IOException, ParseException, ClientException, ApiException {
 
         Integer chatId = Integer.parseInt(peer_id);
-        StringBuilder requestURL = new StringBuilder();
         List<User> users = new ArrayList();
 
         String jsonStr = InitBot.vk.messages().getChat(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields", "online").executeAsString();
         LOG.debug(jsonStr);
-        //   String strd = InitBot.vk.messages().getChatUsers(InitBot.actor).chatId(chatId - 2000000000).unsafeParam("fields","online").executeAsString();
-        //   LOG.debug(strd.toString());
 
         JSONObject commentsJSON = (JSONObject) new JSONParser().parse(jsonStr);
         JSONObject response = (JSONObject) commentsJSON.get("response");
@@ -79,21 +70,64 @@ public class ChatBusinessServiceImpl implements ChatBusinessService {
         return users;
     }
 
-    public void startCycleForChat() {
+    public Map<String, Integer> statisticChatMessage(Integer peer_id) {
+
+        Map<String, Integer> statisticMessages = new HashMap<>();
+        Map<Integer, Integer> statisticCharacter = new HashMap<>();
+
+        Integer chatId = peer_id;
+
+        Integer countMessage;
+        Integer countCharacter;
+
+        List<com.vk.api.sdk.objects.messages.Message> listMessage;
         try {
 
-            longPollBusinessService.cycle();
+            int i = 0;
+            int offset = 0;
+            while (i < 10) {
+                listMessage = InitBot.vk.messages().getHistory(InitBot.actor)
+                        .peerId(chatId)
+                        .count(200)
+                        .offset(offset)
+                        .rev(false)
+                        .execute().getItems();
 
+                for (com.vk.api.sdk.objects.messages.Message item : listMessage) {
+             //       countCharacter = statisticCharacter.get(item.getUserId());
+                    countMessage = statisticMessages.get(item.getUserId());
+
+/*                    if (countCharacter == null) {
+                        statisticCharacter.put(item.getUserId(), item.getActionText().length());
+                    } else {
+                        statisticCharacter.put(item.getUserId(), countCharacter + item.getActionText().length());
+                    }*/
+                    if (countMessage == null) {
+                        statisticMessages.put(item.getUserId().toString(), 1);
+                    } else {
+                        statisticMessages.put(item.getUserId().toString(), countMessage++);
+                    }
+                }
+                offset += 200;
+                i++;
+            }
+        } catch (ApiException | ClientException e) {
+            e.printStackTrace();
+        }
+        return statisticMessages;
+    }
+
+    public void startCycleForChat() {
+        try {
+            longPollService.cycle();
         } catch (JSONException | ParseException | IOException | ApiException | ClientException e) {
             e.printStackTrace();
         }
-
-
     }
 
     @PostConstruct
     public void test() {
-        LOG.debug("Создан бин ChatBusinessServiceImpl");
+        LOG.debug("Создан бин ChatService");
     }
 
 }

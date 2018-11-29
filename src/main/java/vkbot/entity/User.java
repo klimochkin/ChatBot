@@ -1,5 +1,6 @@
 package vkbot.entity;
 
+import com.vk.api.sdk.objects.users.UserXtrCounters;
 import lombok.Data;
 import org.json.simple.JSONObject;
 
@@ -29,4 +30,16 @@ public class User {
         isFriend = null;
     }
 
+    public User(UserXtrCounters item) {
+
+        this.userId = new Long(item.getId());
+        this.firstName = item.getFirstName();
+        this.lastName = item.getLastName();
+        this.online = item.isOnline();
+        this.city = item.getCity().toString();
+        this.isFriend = false;
+        this.sex = item.getSex().getValue();
+        this.screenName = item.getScreenName();
+        this.photo = item.getPhoto200();
+    }
 }

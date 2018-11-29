@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.ChatBusinessService;
-import vkbot.business.GroupBusinessService;
+import vkbot.business.ChatService;
+import vkbot.business.GroupService;
 import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
@@ -22,21 +22,20 @@ import java.util.Arrays;
 import java.util.List;
 
 
-@Service("HandlerBusinessServiceImpl")
-public class HandlerBusinessServiceImpl implements HandlerBusinessService {
+@Service("HandlerService")
+public class HandlerService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HandlerBusinessServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HandlerService.class);
 
     @Autowired
-    ChatBusinessService chatBusinessService;
+    ChatService chatService;
 
     @Autowired
     AnswerToCommandService answerToCommandService;
 
     @Autowired
-    GroupBusinessService groupBusinessService;
+    GroupService groupService;
 
-    @Override
     public void handleMessages(Message msg) throws ClientException, ApiException, IOException, ParseException {
 
         int flag = msg.getFlags();
@@ -51,45 +50,29 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
             LOG.debug("Беседа: " + msg.getSubject());
             LOG.debug("Получено сообщение: " + msg.getText());
             if (abstractMsg != null) {
-                //  msg.setText(abstractMsg.getText());
-                // msg.setAttachment(abstractMsg.getAttachment());
-                if (SourceTypeEnum.CHAT.equals(msg.getSourceType()))
-                    msg = (Message) abstractMsg;
-                LOG.debug("Сформирован ответ: " + abstractMsg.getText());
-                LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
-                chatBusinessService.sendMessage(msg);
+                msg = (Message) abstractMsg;
+                chatService.sendMessage(msg);
             } else
                 LOG.debug("Не удалось типологизировать сообщение. Ответ не был сформирован.");
-            LOG.debug("==========================================================");
         }
     }
 
-    @Override
     public void handleComments(Comment com) throws IOException, ApiException, ParseException, ClientException {
 
-        if (com.getText().contains("сиськи"))
-            LOG.debug("== " + com.getText());
-
         com.setMessageType(typologyMsg(com.getMessageType(), com.getUserId(), com.getText()));
-
         AbstractMessage abstractMsg = com;
-
         abstractMsg = answerToCommandService.splitter(abstractMsg);
 
         LOG.debug("==========================================================");
         LOG.debug("Топик: " + com.getTopicId());
         LOG.debug("Получено сообщение: " + com.getText());
         if (abstractMsg != null) {
-            if (SourceTypeEnum.GROUP.equals(com.getSourceType()))
-                com = (Comment) abstractMsg;
-            LOG.debug("Сформирован ответ: " + abstractMsg.getText());
-            LOG.debug("Медиавложение: " + abstractMsg.getAttachment());
-            groupBusinessService.sendComment(com);
+            com = (Comment) abstractMsg;
+            groupService.sendComment(com);
         } else
             LOG.debug("Не удалось типологизировать сообщение. Ответ не был сформирован.");
-        LOG.debug("==========================================================");
-    }
 
+    }
 
     private MessageTypeEnum typologyMsg(MessageTypeEnum messageType, Long userId, String text) {
         MessageTypeEnum newMessageType = messageType;
@@ -156,10 +139,8 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
             if (checkFullMessage(text, literals))
                 return OtherEnum.NAH;
         }
-
         return null;
     }
-
 
     public boolean checkFullMessage(String message, List<String> words) {
         for (String word : words) {
@@ -170,10 +151,9 @@ public class HandlerBusinessServiceImpl implements HandlerBusinessService {
         return false;
     }
 
-
     @PostConstruct
     public void test() {
-        LOG.debug("Создан бин HandlerBusinessServiceImpl");
+        LOG.debug("Создан бин HandlerService");
     }
 
 }

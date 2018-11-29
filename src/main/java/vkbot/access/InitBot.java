@@ -35,7 +35,7 @@ public class InitBot {
     public static Map<String, String> weatherCods;
     public static Map<Integer, Integer> topicListLastComment;
 
-    public InitBot() throws IOException {
+    public InitBot() {
         this.dataBot = LoaderConfig();
         actor = new UserActor(512877743, dataBot.getVkToken()[0]);
 
@@ -44,12 +44,11 @@ public class InitBot {
         prefix = LoadListFromFile("literals.txt");
         weatherCods = LoadMapFromFile("yahoo/weather_cods.txt");
         answerNoPrefix = LoaderFile("answer/no_prefix.txt");
-        usersIgnore = LoadListFromFile("users/user_ignore_list.txt");
+        usersIgnore = LoadListFromFile("users/user_ignore.txt");
         topicListLastComment = convert(LoadMapFromFile("topic_cache.txt"));
 
         vk = new VkApiClient(HttpTransportClient.getInstance());
     }
-
 
     public DataBot LoaderConfig() {
         DataBot dataBot = new DataBot();
@@ -106,8 +105,6 @@ public class InitBot {
 
         try (DataOutputStream outstream = new DataOutputStream(new FileOutputStream(file, false))) {
 
-
-
             StringBuilder body = new StringBuilder();
 
             for (Integer key : topicList.keySet()) {
@@ -120,7 +117,6 @@ public class InitBot {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public List<String> LoaderFile(String filePath) {
@@ -132,7 +128,6 @@ public class InitBot {
         try (BufferedReader buff = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
             String line;
             while ((line = buff.readLine()) != null) {
-                //  list.add(user.split("=")[0]);
                 list.add(line);
             }
             LOG.debug("Файл " + filePath + " загружен");
@@ -145,7 +140,6 @@ public class InitBot {
 
     public List<String> LoadListFromFile(String filePath) {
         List<String> list = new ArrayList<>();
-        ;
 
         for (String item : LoaderFile(filePath)) {
             list.add(item.split("=")[0]);

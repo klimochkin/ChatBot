@@ -1,4 +1,4 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
@@ -15,8 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.Handler.HandlerBusinessService;
-import vkbot.business.LongPollBusinessService;
+import vkbot.business.Handler.HandlerService;
 import vkbot.entity.LongPollResponse;
 import vkbot.entity.Message;
 import vkbot.enums.SourceTypeEnum;
@@ -27,15 +26,15 @@ import java.io.StringReader;
 import java.util.List;
 
 
-@Service("LongPollBusinessServiceImpl")
-public class LongPollBusinessServiceImpl implements LongPollBusinessService {
+@Service("LongPollService")
+public class LongPollService {
 
-    static final Logger LOG = LoggerFactory.getLogger(LongPollBusinessServiceImpl.class);
+    static final Logger LOG = LoggerFactory.getLogger(LongPollService.class);
 
     LongpollParams LongPollParams;
 
     @Autowired
-    private HandlerBusinessService handlerBusinessService;
+    private HandlerService handlerService;
 
     private void init() throws ClientException, ApiException {
         MessagesGetLongPollServerQuery longPollServer = InitBot.vk.messages().getLongPollServer(InitBot.actor).lpVersion(2);
@@ -43,7 +42,6 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
         LongPollParams = longPollServer.execute();
     }
 
-    @Override
     public void cycle() throws ClientException, ApiException, ParseException, JSONException, IOException {
         init();
         GetLongPollEventsQuery events;
@@ -97,7 +95,7 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
                     if (message.getPeerId() == 2000000016)
                         break;
 
-                    handlerBusinessService.handleMessages(message);
+                    handlerService.handleMessages(message);
                     break;
             }
         }
@@ -116,7 +114,6 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
                     LOG.error("\'ts\' value is incorrect, minimal value is 1, maximal value is " + ts);
                     return null;
                 case 2:
-                    // throw new LongPollServerKeyExpiredException("Try to generate a new key.");
                     return null;
                 default:
                     throw new ClientException("Unknown LongPollServer exception, something went wrong.");
@@ -135,7 +132,7 @@ public class LongPollBusinessServiceImpl implements LongPollBusinessService {
 
     @PostConstruct
     public void postConstruct() {
-        LOG.debug("Создан бин LongPollBusinessServiceImpl");
+        LOG.debug("Создан бин LongPollService");
     }
 
 }

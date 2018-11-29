@@ -16,8 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.GroupBusinessService;
-import vkbot.business.impl.ChatBusinessServiceImpl;
+import vkbot.business.ChatService;
+import vkbot.business.GroupService;
+import vkbot.business.UserService;
 import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
@@ -32,7 +33,9 @@ import vkbot.external.YandexIntegration;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Service("AnswerToCommandService")
@@ -41,19 +44,22 @@ public class AnswerToCommandService {
     private static final Logger LOG = LoggerFactory.getLogger(AnswerToCommandService.class);
 
     @Autowired
-    private YandexIntegration yandex;
+    YandexIntegration yandex;
 
     @Autowired
-    private ExternalService externServ;
+    private UserService userService;
 
     @Autowired
-    private ChatBusinessServiceImpl chatBusinessService;
+    private ExternalService externalService;
+
+    @Autowired
+    private ChatService chatBusinessService;
 
     @Autowired
     private AnswerToNoPrefixService answerToNoPrefixService;
 
     @Autowired
-    private GroupBusinessService groupBusinessService;
+    private GroupService groupBusinessService;
 
 
     public AbstractMessage splitter(AbstractMessage msg) throws ClientException, ApiException, IOException, ParseException {
@@ -90,6 +96,8 @@ public class AnswerToCommandService {
             return answerToNoPrefixService.getAnswerCommandSHAR(msg);
         } else if (OtherEnum.NAH.equals(type)) {
             return answerToNoPrefixService.getAnswerCommandNAH(msg);
+        } else if (CommandEnum.STAT_MSG.equals(type)) {
+            return getAnswerCommandSTATMSG(msg);
         }
         return null;
     }
@@ -196,7 +204,7 @@ public class AnswerToCommandService {
 
     private AbstractMessage getAnswerCommandJOKE(AbstractMessage msg) throws IOException {
 
-        String answer = externServ.getBash();
+        String answer = externalService.getBash();
 
         msg.setText(answer);
         msg.setAttachment(null);
@@ -233,7 +241,7 @@ public class AnswerToCommandService {
         if (strList.length == 2) {
             String text = strList[1].trim();
 
-            answer = externServ.getWeatherYahoo(text);
+            answer = externalService.getWeatherYahoo(text);
         } else
             answer = "фиаско потерпел я";
         msg.setText(answer);
@@ -242,7 +250,7 @@ public class AnswerToCommandService {
     }
 
     private AbstractMessage getAnswerCommandEURO(AbstractMessage msg) throws IOException, ParseException {
-        String answer = externServ.getFixer();
+        String answer = externalService.getFixer();
 
         msg.setText(answer);
         msg.setAttachment(null);
@@ -259,7 +267,7 @@ public class AnswerToCommandService {
         }
         if (SourceTypeEnum.GROUP.equals(msg.getSourceType())) {
             Comment groupMessage = (Comment) msg;
-            users = groupBusinessService.getUserTopic(groupMessage.getGroupId()*-1, groupMessage.getTopicId());
+            users = groupBusinessService.getUserTopic(groupMessage.getGroupId() * -1, groupMessage.getTopicId());
         }
         StringBuilder strAnswer = new StringBuilder();
         strAnswer.append("Сейчас в онлайне: \n");
@@ -289,6 +297,24 @@ public class AnswerToCommandService {
         }
         String answer = strAnswer.toString();
         msg.setText(answer);
+        msg.setAttachment(null);
+        return msg;
+    }
+
+    private AbstractMessage getAnswerCommandSTATMSG(AbstractMessage msg) {
+        StringBuilder answer = new StringBuilder("Статистика сообщений: ");
+        List<String> userIds = new ArrayList<>();
+        Message message = (Message) msg;
+
+        Map<String, Integer> resp = chatBusinessService.statisticChatMessage(message.getPeerId());
+        userIds.addAll(resp.keySet());
+        Map<String, String> users = userService.getMapUsers(userIds);
+
+        for (String key : resp.keySet()) {
+            answer.append(users.get(key)).append(" - ").append(resp.get(key)).append("\n");
+        }
+
+        msg.setText(answer.toString());
         msg.setAttachment(null);
         return msg;
     }

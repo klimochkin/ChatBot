@@ -1,10 +1,9 @@
-package vkbot.business.impl;
+package vkbot.business;
 
 
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.objects.board.TopicComment;
-import com.vk.api.sdk.objects.newsfeed.NewsfeedItem;
 import com.vk.api.sdk.queries.board.BoardGetCommentsSort;
 import com.vk.api.sdk.queries.newsfeed.NewsfeedGetCommentsFilter;
 import org.json.simple.JSONArray;
@@ -16,31 +15,27 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.GroupBusinessService;
-import vkbot.business.Handler.HandlerBusinessService;
+import vkbot.business.Handler.HandlerService;
 import vkbot.entity.Comment;
-import vkbot.entity.Message;
 import vkbot.entity.Topic;
 import vkbot.entity.User;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-@Service("GroupBusinessServiceImpl")
-public class GroupBusinessServiceImpl implements GroupBusinessService {
+@Service("GroupService")
+public class GroupService {
 
-    private final Logger LOG = LoggerFactory.getLogger(LongPollBusinessServiceImpl.class);
+    private final Logger LOG = LoggerFactory.getLogger(LongPollService.class);
 
     @Autowired
-    private HandlerBusinessService handlerBusinessService;
+    private HandlerService handlerService;
 
     private Map<Integer, Integer> topicCache;
 
-    public GroupBusinessServiceImpl() {
-    }
+    public GroupService() {}
 
     public void startCycleForGroups() {
         int i = 0;
@@ -49,7 +44,6 @@ public class GroupBusinessServiceImpl implements GroupBusinessService {
                 List<Topic> topics = getNewsFeedComments();
                 hendlerCommentsList(topics);
                 TimeUnit.SECONDS.sleep(3);
-
             } catch (IOException | ParseException | ApiException | ClientException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -68,13 +62,11 @@ public class GroupBusinessServiceImpl implements GroupBusinessService {
                 topicCache.put(topic.getTopicId(), newLastCommentId);
 
                 for (Comment comment : comments) {
-                    handlerBusinessService.handleComments(comment);
+                    handlerService.handleComments(comment);
                 }
             }
         }
     }
-
-
 
 /*
     //TODO: Сделать цикл получения сообщений с групп
@@ -88,13 +80,12 @@ public class GroupBusinessServiceImpl implements GroupBusinessService {
 */
 
     public void sendComment(Comment comment) throws ClientException, ApiException {
-        String answer = bildPrefixName(comment);
+        String answer = buildPrefixName(comment);
 
         InitBot.vk.board().createComment(InitBot.actor, comment.getGroupId()*-1, comment.getTopicId())
                 .message(answer)
                 .attachments(comment.getAttachment())
                 .execute();
-
     }
 
     public List<Comment> getComments(Integer groupId, Integer topicId, int startCommentId) throws IOException, ParseException, ClientException, ApiException {
@@ -222,8 +213,7 @@ public class GroupBusinessServiceImpl implements GroupBusinessService {
         return topics;
     }
 
-
-    public static String bildPrefixName(Comment comment) {
+    public String buildPrefixName(Comment comment) {
         StringBuilder strBild = new StringBuilder();
         strBild.append("[id").append(comment.getUserId())
                 .append(":bp-").append(comment.getGroupId().toString().replace("-", ""))
@@ -235,6 +225,6 @@ public class GroupBusinessServiceImpl implements GroupBusinessService {
 
     @PostConstruct
     public void test() {
-        LOG.debug("Создан бин GroupBusinessServiceImpl");
+        LOG.debug("Создан бин GroupService");
     }
 }
