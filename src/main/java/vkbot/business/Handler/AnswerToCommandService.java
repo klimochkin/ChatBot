@@ -16,8 +16,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vkbot.access.InitBot;
-import vkbot.business.GroupBusinessService;
-import vkbot.business.impl.ChatBusinessServiceImpl;
+import vkbot.business.impl.ChatService;
+import vkbot.business.impl.GroupService;
 import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
@@ -47,13 +47,13 @@ public class AnswerToCommandService {
     private ExternalService externServ;
 
     @Autowired
-    private ChatBusinessServiceImpl chatBusinessService;
+    private ChatService chatBusinessService;
 
     @Autowired
     private AnswerToNoPrefixService answerToNoPrefixService;
 
     @Autowired
-    private GroupBusinessService groupBusinessService;
+    private GroupService groupBusinessService;
 
 
     public AbstractMessage splitter(AbstractMessage msg) throws ClientException, ApiException, IOException, ParseException {
