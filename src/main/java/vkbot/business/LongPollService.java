@@ -37,12 +37,12 @@ public class LongPollService {
     private HandlerService handlerService;
 
     private void init() throws ClientException, ApiException {
-        MessagesGetLongPollServerQuery longPollServer = InitBot.vk.messages().getLongPollServer(InitBot.actor).lpVersion(2);
+        MessagesGetLongPollServerQuery longPollServer = InitBot.vk.messages().getLongPollServer(InitBot.actor).lpVersion(3);
         longPollServer.needPts(true);
         LongPollParams = longPollServer.execute();
     }
 
-    public void cycle() throws ClientException, ApiException, ParseException, JSONException, IOException {
+    public void cycle() throws ClientException, ApiException, ParseException, JSONException, IOException, InterruptedException {
         init();
         GetLongPollEventsQuery events;
         int ts = LongPollParams.getTs();
@@ -50,6 +50,7 @@ public class LongPollService {
         while (true) {
             events = InitBot.vk.longPoll().getEvents("https://" + LongPollParams.getServer(), LongPollParams.getKey(), ts);
             events.waitTime(25);
+            events.unsafeParam("mode", 2);
             LongPollResponse response = castomExecute(events);
             if (response != null) {
                 if (response.getUpdates().size() != 0)
@@ -65,7 +66,7 @@ public class LongPollService {
         }
     }
 
-    private void processEvent(List<JsonArray> updates) throws ClientException, ApiException, IOException, ParseException {
+    private void processEvent(List<JsonArray> updates) throws ClientException, ApiException, IOException, ParseException, InterruptedException {
         for (JsonArray arrayItem : updates) {
 
             int code = arrayItem.get(0).getAsInt();
@@ -92,7 +93,7 @@ public class LongPollService {
                         message.setUserId(Long.parseLong(object.getString("from")));
                     } catch (Exception ignored) {
                     }
-                    if (message.getPeerId() == 2000000016)
+                    if (message.getPeerId() == 2000000016 || message.getPeerId() == 2000000003)
                         break;
 
                     handlerService.handleMessages(message);

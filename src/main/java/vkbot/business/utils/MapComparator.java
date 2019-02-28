@@ -22,5 +22,10 @@ public class MapComparator implements Comparator<Object> {
 
     }
 
-
+    public static void main(String[] args) throws Exception {
+        int a = 10;
+        int b;
+        b = ++a + ++a;
+        System.out.println(b);
+    }
 }

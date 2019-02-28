@@ -24,17 +24,17 @@ import vkbot.entity.AbstractMessage;
 import vkbot.entity.Comment;
 import vkbot.entity.Message;
 import vkbot.entity.User;
-import vkbot.enums.CommandEnum;
-import vkbot.enums.MessageTypeEnum;
-import vkbot.enums.OtherEnum;
-import vkbot.enums.SourceTypeEnum;
+import vkbot.enums.*;
 import vkbot.external.ExternalService;
 import vkbot.external.MultipartUtility;
 import vkbot.external.YandexIntegration;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -62,43 +62,51 @@ public class AnswerToCommandService {
     private GroupService groupBusinessService;
 
 
-    public AbstractMessage splitter(AbstractMessage msg) throws ClientException, ApiException, IOException, ParseException {
+    public AbstractMessage splitter(AbstractMessage msg) throws ClientException, ApiException, IOException, ParseException, InterruptedException {
 
         MessageTypeEnum type = msg.getMessageType();
 
-        if (CommandEnum.SHAR.equals(type)) {
-            return getAnswerCommandSHAR(msg);
-        } else if (CommandEnum.DVACH.equals(type)) {
-            return getAnswerCommandDVACH(msg);
-        } else if (CommandEnum.MEM.equals(type)) {
-            return getAnswerCommandMEM(msg);
-        } else if (CommandEnum.SISKI.equals(type)) {
-            return getAnswerCommandSISKI(msg);
-        } else if (CommandEnum.TYAN.equals(type)) {
-            return getAnswerCommandTYAN(msg);
-        } else if (CommandEnum.FIND.equals(type)) {
-            return getAnswerCommandFIND(msg);
-        } else if (CommandEnum.SAY.equals(type)) {
-            return getAnswerCommandSAY(msg);
-        } else if (CommandEnum.JOKE.equals(type)) {
-            return getAnswerCommandJOKE(msg);
-        } else if (CommandEnum.GIF.equals(type)) {
-            return getAnswerCommandGIF(msg);
-        } else if (CommandEnum.WEATHER.equals(type)) {
-            return getAnswerCommandWEATHER(msg);
-        } else if (CommandEnum.EURO.equals(type)) {
-            return getAnswerCommandEURO(msg);
-        } else if (CommandEnum.ONLINE.equals(type)) {
-            return getAnswerCommandONLINE(msg);
-        } else if (CommandEnum.COMMANDS.equals(type)) {
-            return getAnswerCommandCOMMANDS(msg);
-        } else if (OtherEnum.NAME_BOT.equals(type)) {
-            return answerToNoPrefixService.getAnswerCommandSHAR(msg);
-        } else if (OtherEnum.NAH.equals(type)) {
-            return answerToNoPrefixService.getAnswerCommandNAH(msg);
-        } else if (CommandEnum.STAT_MSG.equals(type)) {
-            return getAnswerCommandSTATMSG(msg);
+        if (UserEnum.USER_NEGATIVE.equals(type)) {
+            return answerToNoPrefixService.getAnswerNegativeUser(msg);
         }
+
+        if (CommandEnum.SHAR.equals(type))
+            return getAnswerCommandSHAR(msg);
+        if (CommandEnum.DVACH.equals(type))
+            return getAnswerCommandDVACH(msg);
+        if (CommandEnum.MEM.equals(type))
+            return getAnswerCommandMEM(msg);
+        if (CommandEnum.SISKI.equals(type))
+            return getAnswerCommandSISKI(msg);
+        if (CommandEnum.TYAN.equals(type))
+            return getAnswerCommandTYAN(msg);
+        if (CommandEnum.FIND.equals(type))
+            return getAnswerCommandFIND(msg);
+        if (CommandEnum.SAY.equals(type))
+            return getAnswerCommandSAY(msg);
+        if (CommandEnum.JOKE.equals(type))
+            return getAnswerCommandJOKE(msg);
+        if (CommandEnum.GIF.equals(type))
+            return getAnswerCommandGIF(msg);
+        if (CommandEnum.WEATHER.equals(type))
+            return getAnswerCommandWEATHER(msg);
+        if (CommandEnum.EURO.equals(type))
+            return getAnswerCommandEURO(msg);
+        if (CommandEnum.ONLINE.equals(type))
+            return getAnswerCommandONLINE(msg);
+        if (CommandEnum.COMMANDS.equals(type))
+            return getAnswerCommandCOMMANDS(msg);
+        if (OtherEnum.NAME_BOT.equals(type))
+            return answerToNoPrefixService.getAnswerCommandSHAR(msg);
+        if (OtherEnum.NAH.equals(type))
+            return answerToNoPrefixService.getAnswerCommandNAH(msg);
+        if (CommandEnum.STAT_MSG.equals(type))
+            return getAnswerCommandSTATMSG(msg);
+        if (CommandEnum.DETECTOR.equals(type))
+            return getAnswerCommandDETECTOR(msg);
+        if (CommandEnum.SEARCH.equals(type))
+            return getAnswerCommandSEARCH(msg);
+
         return null;
     }
 
@@ -151,7 +159,7 @@ public class AnswerToCommandService {
     private AbstractMessage getAnswerCommandFIND(AbstractMessage msg) throws ClientException, ApiException {
         String answer;
         String attach = null;
-        String[] strList = msg.getText().split("найди ");
+        String[] strList = msg.getText().split("видео ");
 
         if (strList.length == 2) {
             String text = strList[1].trim();
@@ -257,7 +265,7 @@ public class AnswerToCommandService {
         return msg;
     }
 
-    private AbstractMessage getAnswerCommandONLINE(AbstractMessage msg) throws ApiException, ClientException, ParseException, IOException {
+    private AbstractMessage getAnswerCommandONLINE(AbstractMessage msg) throws ApiException, ClientException, ParseException, IOException, InterruptedException {
         boolean flag = true;
         String answer = "Модуль не подключен";
         List<User> users = null;
@@ -302,6 +310,12 @@ public class AnswerToCommandService {
     }
 
     private AbstractMessage getAnswerCommandSTATMSG(AbstractMessage msg) {
+        if (SourceTypeEnum.GROUP.equals(msg.getSourceType())) {
+            msg.setText("Команда доступна только для групповых бесед");
+            msg.setAttachment(null);
+            return msg;
+        }
+
         StringBuilder answer = new StringBuilder("Статистика сообщений:  \n");
         List<String> userIds = new ArrayList<>();
         Message message = (Message) msg;
@@ -311,7 +325,7 @@ public class AnswerToCommandService {
         Map<String, Integer> sortedMap = respMap.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (e2,e1) -> e2, LinkedHashMap::new));
+                        (e2, e1) -> e2, LinkedHashMap::new));
 
         userIds.addAll(sortedMap.keySet());
         Map<String, String> users = userService.getMapUsers(userIds);
@@ -325,10 +339,113 @@ public class AnswerToCommandService {
         return msg;
     }
 
+    private AbstractMessage getAnswerCommandDETECTOR(AbstractMessage msg) {
+        StringBuilder answer = new StringBuilder("Уровень ЧСВ: \n");
+
+        Integer countLiter;
+        Integer countMsg;
+        Pattern p = Pattern.compile("\\bя\\b|\\bменя\\b|\\bмне\\b|\\bмой\\b|\\bмоя\\b|\\bмоё\\b|\\bмою\\b|\\bмоего\\b", Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+        Map<String, Integer> mapCountLiter = new HashMap<>();
+        Map<String, Integer> mapCountMsg = new HashMap<>();
+        List<AbstractMessage> listAbsMsg = new ArrayList<>();
+        String text;
+        if (SourceTypeEnum.CHAT.equals(msg.getSourceType())) {
+            Message message = (Message) msg;
+            List<Message> listMsg = chatBusinessService.getChatMessages(message.getPeerId());
+            listAbsMsg.addAll(listMsg);
+        }
+
+        if (SourceTypeEnum.GROUP.equals(msg.getSourceType())) {
+            Comment comment = (Comment) msg;
+            Integer limit = null;
+            String[] strList = msg.getText().split("чсв ");
+            try {
+                if (strList.length == 2) {
+                    limit = Integer.parseInt(strList[1].trim());
+                }
+            } catch (Exception e) {
+                limit = null;
+            }
+            List<Comment> listComm = groupBusinessService.getComments(comment.getGroupId() * -1, comment.getTopicId(), limit);
+            listAbsMsg.addAll(listComm);
+        }
+        for (AbstractMessage item : listAbsMsg) {
+            countLiter = mapCountLiter.get(item.getUserId().toString());
+            countMsg = mapCountMsg.get(item.getUserId().toString());
+            text = item.getText();
+
+            int count = 0;
+            Matcher m = p.matcher(text);
+            while (m.find()) count++;
+
+            if (countLiter == null && countMsg == null) {
+                countMsg = 1;
+                countLiter = count;
+                mapCountMsg.put(item.getUserId().toString(), countMsg);
+                mapCountLiter.put(item.getUserId().toString(), countLiter);
+            } else {
+                countMsg = countMsg + 1;
+                countLiter = countLiter + count;
+                mapCountMsg.put(item.getUserId().toString(), countMsg);
+                mapCountLiter.put(item.getUserId().toString(), countLiter);
+            }
+        }
+
+        for (String key : mapCountLiter.keySet()) {
+            countMsg = mapCountMsg.get(key);
+            if (countMsg > 100) {
+                countLiter = mapCountLiter.get(key);
+                Integer value = countLiter * 100 / countMsg;
+                mapCountLiter.put(key, value);
+            } else {
+                mapCountLiter.put(key, 0);
+            }
+        }
+        Map<String, Integer> sortedMap = mapCountLiter.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (e2, e1) -> e2, LinkedHashMap::new));
+
+        List<String> userIds = new ArrayList<>();
+        userIds.addAll(sortedMap.keySet());
+        Map<String, String> users = userService.getMapUsers(userIds);
+
+        for (String key : sortedMap.keySet()) {
+            countMsg = sortedMap.get(key);
+            if (countMsg != 0) {
+                answer.append(users.get(key)).append(" - ").append(sortedMap.get(key).toString()).append(" (Сообщений: " + mapCountMsg.get(key) + ")\n");
+            }
+        }
+        answer.append("\nВсего сообщений обработано: " + listAbsMsg.size() + " \n");
+
+        msg.setText(answer.toString());
+        msg.setAttachment(null);
+        return msg;
+    }
+
+    private AbstractMessage getAnswerCommandSEARCH(AbstractMessage msg) {
+        String answer = "Ошибка поиска!";
+        String[] strList = msg.getText().split("найди ");
+
+        if (strList.length == 2) {
+            try {
+                answer = externalService.googleSearch(strList[1].trim());
+            } catch (GeneralSecurityException | IOException e) {
+                e.printStackTrace();
+            }
+        } else
+            answer = "Что мне искать?";
+
+        msg.setText(answer);
+        msg.setAttachment(null);
+        return msg;
+    }
+
+
+
     private String getRandomItem(String... words) {
         return words[new Random().nextInt(words.length)];
     }
-
 
     private AbstractMessage getPicture(Integer groupId, Integer limit) throws ClientException, ApiException {
 
@@ -340,7 +457,7 @@ public class AnswerToCommandService {
 
         String attach = "photo" + photo.getOwnerId() + "_" + photo.getId() + "_" + photo.getAccessKey();
 
-        return new AbstractMessage(text, null, null, attach, null);
+        return new AbstractMessage(text, null, null, attach, null, null);
     }
 
 

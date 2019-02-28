@@ -87,18 +87,19 @@ public class ChatService {
             int i = 0;
             int offset = 0;
             while (i < N) {
-                GetHistoryResponse getHistoryResponse = InitBot.vk.messages().getHistory(InitBot.actor)
+                GetHistoryResponse historyResponse = InitBot.vk.messages().getHistory(InitBot.actor)
                         .peerId(chatId)
                         .count(200)
                         .offset(offset)
                         .rev(false)
                         .execute();
+
                 if (i == 0) {
-                    count = getHistoryResponse.getCount();
+                    count = historyResponse.getCount();
                     if (count > 400)
                         N = count / 200;
                 }
-                listMessage = getHistoryResponse.getItems();
+                listMessage = historyResponse.getItems();
                 for (com.vk.api.sdk.objects.messages.Message item : listMessage) {
                     //   countCharacter = statisticCharacter.get(item.getUserId());
                     //   Integer usUd = item.getUserId();
@@ -129,13 +130,52 @@ public class ChatService {
         return statisticMessages;
     }
 
-    public void startCycleForChat() {
+    public List<Message> getChatMessages(Integer peer_id) {
+        //размер диалога с шагом в 200 смс
+        Integer N = 1;
+
+        Integer count;
+        List<Message> chatMessages = new ArrayList<>();
+        List<com.vk.api.sdk.objects.messages.Message> listMessage;
         try {
-            longPollService.cycle();
-        } catch (JSONException | ParseException | IOException | ApiException | ClientException e) {
+            int i = 0;
+            int offset = 0;
+            while (i < N) {
+                GetHistoryResponse historyResponse = InitBot.vk.messages().getHistory(InitBot.actor)
+                        .peerId(peer_id)
+                        .count(200)
+                        .offset(offset)
+                        .rev(false)
+                        .execute();
+
+                if (i == 0) {
+                    count = historyResponse.getCount();
+                    if (count > 400)
+                        N = count / 200;
+                }
+                listMessage = historyResponse.getItems();
+                for (com.vk.api.sdk.objects.messages.Message msg : listMessage) {
+                    Message message = new Message(msg);
+                    message.setPeerId(peer_id);
+                    chatMessages.add(message);
+                }
+                TimeUnit.MILLISECONDS.sleep(300);
+                offset += 200;
+                i++;
+            }
+        } catch (ApiException | ClientException | InterruptedException e) {
             e.printStackTrace();
         }
+        return chatMessages;
     }
+
+        public void startCycleForChat() {
+        try {
+            longPollService.cycle();
+        } catch (JSONException | ParseException | IOException | ApiException | ClientException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        }
 
     @PostConstruct
     public void test() {

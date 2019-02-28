@@ -36,7 +36,7 @@ public class User {
         this.firstName = item.getFirstName();
         this.lastName = item.getLastName();
         this.online = item.isOnline();
-        this.city = item.getCity().toString();
+//        this.city = item.getCity().toString();
         this.isFriend = false;
         this.sex = item.getSex().getValue();
         this.screenName = item.getScreenName();

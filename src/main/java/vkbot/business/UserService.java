@@ -35,7 +35,7 @@ public class UserService {
     public List<User> getUsers(List<String> userIds) {
         List<User> users = new ArrayList<>();
         try {
-            List<UserXtrCounters> userList = InitBot.vk.users().get(InitBot.actor).userIds(userIds).execute();
+            List<UserXtrCounters> userList = InitBot.vk.users().get(InitBot.actor).userIds(userIds).unsafeParam("fields","sex").execute();
             for(UserXtrCounters item : userList){
                 users.add(new User(item));
             }

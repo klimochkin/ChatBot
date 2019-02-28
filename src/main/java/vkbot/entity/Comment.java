@@ -10,7 +10,6 @@ import vkbot.enums.SourceTypeEnum;
 public class Comment extends AbstractMessage {
     private Long id;
     private int commentId;
-    private Integer date;
     private String userName;
     private Integer groupId;
     private Integer topicId;
@@ -18,10 +17,9 @@ public class Comment extends AbstractMessage {
 
     public Comment(TopicComment item, Integer groupId, Integer topicId){
 
-        super(item.getText(), new Long(item.getFromId()), null, null, SourceTypeEnum.GROUP);
+        super(item.getText(), item.getFromId().longValue(), null, null, SourceTypeEnum.GROUP, item.getDate());
 
         this.commentId = item.getId();
-        this.date = item.getDate();
         this.groupId = groupId;
         this.topicId = topicId;
     }
@@ -38,7 +36,7 @@ public class Comment extends AbstractMessage {
     }
 */
     public Comment(JSONObject item, String userName, Integer groupId, Integer topicId) {
-        super(item.get("text").toString().toLowerCase().replace("\"", ""), Long.parseLong(item.get("from_id").toString()), null, null, SourceTypeEnum.GROUP);
+        super(item.get("text").toString().toLowerCase().replace("\"", ""), Long.parseLong(item.get("from_id").toString()), null, null, SourceTypeEnum.GROUP,null);
 
         commentId = Integer.parseInt(item.get("id").toString());
         this.userName = userName;

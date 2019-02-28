@@ -1,5 +1,11 @@
 package vkbot.external;
 
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.customsearch.Customsearch;
+import com.google.api.services.customsearch.CustomsearchRequestInitializer;
+import com.google.api.services.customsearch.model.Result;
+import com.google.api.services.customsearch.model.Search;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -18,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Random;
 
@@ -100,7 +107,7 @@ public class ExternalService {
     }
 
 
-    public static  String readUrl(String url) throws IOException {
+    public static String readUrl(String url) throws IOException {
         URL uri = new URL(url);
         URLConnection conURl = (URLConnection) uri.openConnection();
         conURl.setConnectTimeout(5000);
@@ -108,6 +115,41 @@ public class ExternalService {
         String inputLine = in.readLine();
         in.close();
         return inputLine;
+    }
+
+
+    //   AIzaSyD05ev90XC5rtBYlcSTl5r8JvkNZ-fbo-c
+    //   007141834458377101389:35ukoc4tzi0
+
+
+    public String googleSearch(String textSearch) throws GeneralSecurityException, IOException {
+
+        // String cx = "002845322276752338984:vxqzfa86nqc"; //запасной движок
+
+        StringBuilder answerBild = new StringBuilder();
+        answerBild.append("Вот что я нашел: \n");
+        String cx = "007141834458377101389:35ukoc4tzi0";
+
+        Customsearch cs = new Customsearch.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), null)
+                .setApplicationName("MyApplication")
+                .setGoogleClientRequestInitializer(new CustomsearchRequestInitializer("AIzaSyD05ev90XC5rtBYlcSTl5r8JvkNZ-fbo-c"))
+                .build();
+
+        Customsearch.Cse.List list = cs.cse().list(textSearch).setCx(cx);
+        Search result = list.execute();
+        int i = 0;
+        if (result.getItems() != null) {
+            for (Result ri : result.getItems()) {
+                answerBild.append(ri.getTitle() + ", " + ri.getLink());
+
+                i++;
+                if (i > 3)
+                    break;
+
+                answerBild.append("\n\n**********\n");
+            }
+        }
+        return answerBild.toString();
     }
 
 
@@ -126,4 +168,8 @@ public class ExternalService {
         }
         return result;
     }
+
+
+
+
 }

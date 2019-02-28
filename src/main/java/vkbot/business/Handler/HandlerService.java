@@ -36,7 +36,7 @@ public class HandlerService {
     @Autowired
     GroupService groupService;
 
-    public void handleMessages(Message msg) throws ClientException, ApiException, IOException, ParseException {
+    public void handleMessages(Message msg) throws ClientException, ApiException, IOException, ParseException, InterruptedException {
 
         int flag = msg.getFlags();
         boolean outbox = (flag & 2) != 0;
@@ -57,7 +57,7 @@ public class HandlerService {
         }
     }
 
-    public void handleComments(Comment com) throws IOException, ApiException, ParseException, ClientException {
+    public void handleComments(Comment com) throws IOException, ApiException, ParseException, ClientException, InterruptedException {
 
         com.setMessageType(typologyMsg(com.getMessageType(), com.getUserId(), com.getText()));
         AbstractMessage abstractMsg = com;

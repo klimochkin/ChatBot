@@ -32,8 +32,6 @@ public class YandexIntegration {
         while ((bytesRead = input.read(buffer)) >= 0) {
             baos.write(buffer, 0, bytesRead);
         }
-
         return baos.toByteArray();
     }
-
 }

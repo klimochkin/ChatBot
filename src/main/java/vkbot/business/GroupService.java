@@ -35,7 +35,8 @@ public class GroupService {
 
     private Map<Integer, Integer> topicCache;
 
-    public GroupService() {}
+    public GroupService() {
+    }
 
     public void startCycleForGroups() {
         int i = 0;
@@ -50,7 +51,7 @@ public class GroupService {
         }
     }
 
-    public void hendlerCommentsList(List<Topic> topics) throws ClientException, ApiException, ParseException, IOException {
+    public void hendlerCommentsList(List<Topic> topics) throws ClientException, ApiException, ParseException, IOException, InterruptedException {
 
         for (Topic topic : topics) {
             Integer newLastCommentId = topic.getLastCommentId();
@@ -82,13 +83,13 @@ public class GroupService {
     public void sendComment(Comment comment) throws ClientException, ApiException {
         String answer = buildPrefixName(comment);
 
-        InitBot.vk.board().createComment(InitBot.actor, comment.getGroupId()*-1, comment.getTopicId())
+        InitBot.vk.board().createComment(InitBot.actor, comment.getGroupId() * -1, comment.getTopicId())
                 .message(answer)
                 .attachments(comment.getAttachment())
                 .execute();
     }
 
-    public List<Comment> getComments(Integer groupId, Integer topicId, int startCommentId) throws IOException, ParseException, ClientException, ApiException {
+/*    public List<Comment> getCommentsOld(Integer groupId, Integer topicId, int startCommentId) throws IOException, ParseException, ClientException, ApiException {
         List commentList = new ArrayList<Comment>();
 
         List<TopicComment> topicCommentList = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
@@ -104,48 +105,104 @@ public class GroupService {
             return commentList;
         } else
             return null;
-    }
+    }*/
 
-    public List<User> getUserTopic(Integer groupId, Integer topicId) throws ClientException, ParseException {
+    public List<User> getUserTopic(Integer groupId, Integer topicId) {
         List users = new ArrayList<User>();
         Set<User> usersSet = new HashSet<>();
         Integer commenId = null;
         int N = 0;
-        while (N < 7) {
-            String jsonStr = null;
-            if (N == 0)
-                jsonStr = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
-                        .count(100)
-                        .unsafeParam("extended", "1")
-                        .sort(BoardGetCommentsSort.DESC)
-                        .executeAsString();
+        try {
+            int countComm = 0;
+            while (N < 30) {
+                String jsonStr = null;
+                if (N == 0)
+                    jsonStr = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
+                            .count(100)
+                            .unsafeParam("extended", "1")
+                            .sort(BoardGetCommentsSort.DESC)
+                            .executeAsString();
 
-            if (N > 0)
-                jsonStr = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
-                        .count(100)
-                        .unsafeParam("extended", "1")
-                        .sort(BoardGetCommentsSort.DESC)
-                        .startCommentId(commenId)
-                        .offset(100)
-                        .executeAsString();
+                if (N > 0)
+                    jsonStr = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
+                            .count(100)
+                            .unsafeParam("extended", "1")
+                            .sort(BoardGetCommentsSort.DESC)
+                            .startCommentId(commenId)
+                            .offset(100)
+                            .executeAsString();
 
-            JSONObject commentsJSON = (JSONObject) new JSONParser().parse(jsonStr);
-            JSONObject response = (JSONObject) commentsJSON.get("response");
-            if (response != null) {
-                commenId = Integer.parseInt(((JSONObject) ((JSONArray) response.get("items")).get(0)).get("id").toString());
-                JSONArray usersJson = (JSONArray) response.get("profiles");
-                for (int i = 0; i < usersJson.size(); i++) {
-                    JSONObject userJson = (JSONObject) usersJson.get(i);
-                    User user = new User(userJson);
-                    usersSet.add(user);
-                 //   users.add(user);
-                }
-            } else
-                throw new RuntimeException("Неудалось получить список юзеров");
-            N++;
+                JSONObject commentsJSON = (JSONObject) new JSONParser().parse(jsonStr);
+                JSONObject response = (JSONObject) commentsJSON.get("response");
+                if (response != null) {
+                    commenId = Integer.parseInt(((JSONObject) ((JSONArray) response.get("items")).get(0)).get("id").toString());
+                    JSONArray itemsJson = (JSONArray) response.get("items");
+                    JSONArray usersJson = (JSONArray) response.get("profiles");
+                    for (int i = 0; i < usersJson.size(); i++) {
+                        JSONObject userJson = (JSONObject) usersJson.get(i);
+                        User user = new User(userJson);
+                        usersSet.add(user);
+                    }
+                    countComm += itemsJson.size();
+                    LOG.debug("Найдено сообщений: " + countComm);
+                    LOG.debug("Найдено юзеров: " + usersSet.size());
+                    if (itemsJson.size() < 100) {
+                        break;
+                    }
+                } else
+                    throw new RuntimeException("Неудалось получить список юзеров");
+                TimeUnit.MILLISECONDS.sleep(200);
+                N++;
+            }
+            users.addAll(usersSet);
+        } catch (InterruptedException | ParseException | ClientException e) {
+            e.printStackTrace();
         }
-        users.addAll(usersSet);
         return users;
+    }
+
+    public List<Comment> getComments(Integer groupId, Integer topicId, Integer limit) {
+        Integer commentId = null;
+        List commentList = new ArrayList<Comment>();
+        int N = 0;
+        if (limit == null) {
+            limit = 40;
+        } else {
+            limit = limit / 100;
+        }
+        try {
+            while (N < limit) {
+                List<TopicComment> topicCommentList;
+                if (N == 0) {
+                    topicCommentList = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
+                            .count(100)
+                            .sort(BoardGetCommentsSort.DESC)
+                            .execute()
+                            .getItems();
+                } else {
+                    topicCommentList = InitBot.vk.board().getComments(InitBot.actor, groupId, topicId)
+                            .count(100)
+                            .sort(BoardGetCommentsSort.DESC)
+                            .startCommentId(commentId)
+                            .offset(100)
+                            .execute()
+                            .getItems();
+                }
+                if (topicCommentList.size() > 1) {
+                    commentId = topicCommentList.get(0).getId();
+                    for (TopicComment item : topicCommentList) {
+                        commentList.add(new Comment(item, groupId, topicId));
+                    }
+                } else {
+                    break;
+                }
+                TimeUnit.MILLISECONDS.sleep(200);
+                N++;
+            }
+        } catch (ApiException | ClientException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        return commentList;
     }
 
     public List<Topic> getNewsFeedComments() {

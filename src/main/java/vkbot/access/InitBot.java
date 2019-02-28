@@ -31,6 +31,9 @@ public class InitBot {
     public static List<String> usersIgnore;
     public static List<String> prefix;
     public static List<String> answerNoPrefix;
+    public static List<String> answersNegativeMan;
+    public static List<String> answersNegativeWoman;
+
 
     public static Map<String, String> weatherCods;
     public static Map<Integer, Integer> topicListLastComment;
@@ -44,6 +47,9 @@ public class InitBot {
         prefix = LoadListFromFile("literals.txt");
         weatherCods = LoadMapFromFile("yahoo/weather_cods.txt");
         answerNoPrefix = LoaderFile("answer/no_prefix.txt");
+        answersNegativeMan = LoaderFile("answer/answers_negative_man.txt");
+        answersNegativeWoman = LoaderFile("answer/answers_negative_woman.txt");
+
         usersIgnore = LoadListFromFile("users/user_ignore.txt");
         topicListLastComment = convert(LoadMapFromFile("topic_cache.txt"));
 
